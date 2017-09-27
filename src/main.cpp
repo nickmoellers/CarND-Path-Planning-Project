@@ -322,50 +322,104 @@ int main() {
             next_y_vals.push_back(previous_path_y[i]);
           }
 
-          cout << "next_vals(x, y): " << next_x_vals.size() << endl;
+          cout << "next_vals_from_prev_path(x, y): " << next_x_vals.size() << endl;
           for( int i = 0 ; i < next_x_vals.size() ; i ++ ) {
             cout << i << ":\t(" << next_x_vals[i] << ",\t" << next_y_vals[i] << ")" << endl;
           }
 
+          
+          //double target_distance_per_timestep = dt * speed_limit_m_s; //0.4464 m
+
+          //cout << "deltat = " << target_distance_per_timestep << endl;
+
+          //double x_spline = 0;
+          //double y_spline = 0;
+          /*if( next_x_vals.size() > 0 ) {
+            double x_spline = next_x_vals[next_x_vals.size()-1]-ref_x;
+            //double y_spline = next_y_vals[next_x_vals.size()-1]-ref_y;
+            x_spline = x_spline * cos(0-ref_yaw) - y_spline * sin(0-ref_yaw);
+            //y_spline = x_spline * sin(0-ref_yaw) + y_spline * cos(0-ref_yaw);
+          }*/
+
+          //out << 50 - next_x_vals.size() << endl;
+
           double speed_limit_mph = 50; // mph
           double speed_limit_m_s = speed_limit_mph/2.24; //m/s
           double dt = 0.02; // seconds
-          double target_distance_per_timestep = dt * speed_limit_m_s; //0.4464 m
+          double target_x = 30; // m
+          double target_y = s(target_x); //m
+          double target_dist = distance(0, 0, target_x, target_y); //m
+          double N = target_dist / (0.02*speed_limit_m_s); //unitless
+          double target_distance_per_timestep = target_x/N; // m
 
-          cout << target_distance_per_timestep << endl;
+          cout << "deltaX/t = " << target_distance_per_timestep << endl;
 
-          double x_point = 0;
-          double y_point = 0;
-          if( next_x_vals.size() > 0 ) {
-            double x_point = next_x_vals[next_x_vals.size()-1]-ref_x;
-            double y_point = next_y_vals[next_x_vals.size()-1]-ref_y;
-            x_point = x_point * cos(0-ref_yaw) - y_point * sin(0-ref_yaw);
-            y_point = x_point * sin(0-ref_yaw) + y_point * cos(0-ref_yaw);
+
+          //double x_spline = 0;
+
+          vector<double> x_spline_vals;
+          vector<double> y_spline_vals;
+
+          double x_spline; // = ref_x - car_x;
+          double y_spline; // = y_ref-y_car;
+          double prev_x_spline = 0 ; ref_x - car_x;
+          
+          while( next_x_vals.size() < 50 ) {
+
+            //cout << i << "\t" << next_x_vals.size() << endl;
+
+            //cout << "\tx,y spline:\t(" << x_spline << ",\t" << y_spline << ")" << endl;
+            //double N = 
+
+            
+            x_spline = prev_x_spline + target_distance_per_timestep; 
+            y_spline = s(x_spline);
+
+            prev_x_spline = x_spline;
+            //cout << x_spline_vals.size() << endl;
+            //cout << "\tx,y spline:\t(" << x_spline << ",\t" << y_spline << ")" << endl;
+            
+            double x_calc = ( x_spline*cos(ref_yaw) - y_spline*sin(ref_yaw) );
+            double y_calc = ( x_spline*sin(ref_yaw) + y_spline*cos(ref_yaw) );
+
+            //cout << "\tx,y rotate:\t(" << x_calc << ",\t" << y_calc << ")" << endl;
+            
+            double x_point = x_calc + ref_x;
+            double y_point = y_calc + ref_y;
+
+            //cout << "\tx,y bad:\t(" << x_point << ",\t" << y_point << ")" << endl;
+
+            //double x_good = ref_x+(target_distance_per_timestep*i)*cos(deg2rad(ref_yaw));
+            //double y_good = ref_y+(target_distance_per_timestep*i)*sin(deg2rad(ref_yaw));
+
+            //cout << "\tx,y good:\t(" << x_good << ",\t" << y_good << ")" << endl;
+
+            x_spline_vals.push_back(x_point);
+            y_spline_vals.push_back(y_point);
+
+            next_x_vals.push_back(x_point);
+            next_y_vals.push_back(y_point);
+
+            //next_x_vals.push_back(x_good);
+            //next_y_vals.push_back(y_good);
+
           }
 
-          int x = 50 - next_x_vals.size();
-          cout << x << endl;
-          for( int i = 1 ; i <= x ; i++ ) {
-
-            x_point += target_distance_per_timestep;
-            y_point = s(x_point);
-
-            //cout << "x,y point:\t(" << x_point << ",\t" << y_point << ")" << endl;
-            
-            double x_calc = ( x_point*cos(ref_yaw) - y_point*sin(ref_yaw) );
-            double y_calc = ( x_point*sin(ref_yaw) + y_point*cos(ref_yaw) );
-
-            //cout << "x,y rotate:\t(" << x_calc << ",\t" << y_calc << ")" << endl;
-            
-            x_calc+=x_point;
-            y_calc+=y_point;
-
-            //cout << "x,y shift:\t(" << x_calc << ",\t" << y_calc << ")" << endl;
-
-            next_x_vals.push_back(x_calc);
-            next_y_vals.push_back(y_calc);
-
+          /*cout << "spline_vals(x, y): " << x_spline_vals.size() << endl;
+          for( int i = 0 ; i < x_spline_vals.size() ; i ++ ) {
+            cout << i << ":\t(" << x_spline_vals[i] << ",\t" << y_spline_vals[i] << ")" << endl;
           }
+
+          for( int i = next_x_vals.size() ; i < x_spline_vals.size() ; i ++ ) {
+           
+          }*/
+
+
+          /*for(int i = 1; next_x_vals.size() < 50; i++)
+          {
+            cout << i << "\t" << next_x_vals.size() << endl;
+
+          }*/
 
           cout << "next_vals(x, y): " << next_x_vals.size() << endl;
           for( int i = 0 ; i < next_x_vals.size() ; i ++ ) {
@@ -419,7 +473,7 @@ int main() {
   });
 
   int port = 4567;
-  if (h.listen(port)) {
+  if (h.listen("0.0.0.0",port)) {
     std::cout << "Listening to port " << port << std::endl;
   } else {
     std::cerr << "Failed to listen to port" << std::endl;
