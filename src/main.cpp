@@ -220,7 +220,7 @@ vector<double> check_lane( int car_lane, int check_direction, vector<double> my_
   double car_vs = car_vs_mph / 2.24; //m/s
   //double car_lane = dToLane(d);
 
-  cout << "my_car:" << endl;
+  /*cout << "my_car:" << endl;
   // cout << "\tx:\t" << car_x << endl;
   // cout << "\ty:\t" << car_y << endl;    
   // cout << "\tvx:\t" << car_vx << endl;
@@ -229,7 +229,7 @@ vector<double> check_lane( int car_lane, int check_direction, vector<double> my_
   // cout << "\td:\t" << car_d << endl;
   cout << "\tvs:\t" << car_vs << endl;
   // cout << "\tlane:\t" << car_lane << endl << endl;
-  // cout << "\tcalculated_lane:\t" << dToLane(car_d) << endl << endl;
+  // cout << "\tcalculated_lane:\t" << dToLane(car_d) << endl << endl; */
 
   double id, x, y, vx, vy, s, d, vs, lane;
   double delta_s, delta_vs;
@@ -256,6 +256,9 @@ vector<double> check_lane( int car_lane, int check_direction, vector<double> my_
       delta_vs = car_vs-vs; //postiive if I'm going faster
       //multiple by check direction (which is positive if checking for car in front)
       double target_direction = check_direction * delta_s;
+      /*if( check_direction == 1 && delta_s > -1 ||
+        check_direction == -1 && delta_s < 1 ) { */ //this should make sure I don't miss a car right next to me
+
 
       if( target_direction > 0 ) {
         if( abs(delta_s) < abs(next_car_delta_s) ) {
@@ -264,9 +267,9 @@ vector<double> check_lane( int car_lane, int check_direction, vector<double> my_
           next_car_delta_vs = delta_vs;
           next_car_s = car_s;
           next_car_vs = car_vs;
-          cout << "*";
+          //cout << "*";
         }
-        cout << "car_" << id << ":" << endl;
+        /*cout << "car_" << id << ":" << endl;
         // cout << "\tx:\t" << x << endl;
         // cout << "\ty:\t" << y << endl;
         // cout << "\tvx:\t" << vx << endl;
@@ -275,7 +278,7 @@ vector<double> check_lane( int car_lane, int check_direction, vector<double> my_
         // cout << "\td:\t" << d << endl;
         cout << "\tvs:\t" << vs << endl;
         //cout << "\tlane:\t" << lane << endl << endl;
-        //cout << "\tcar_lane:\t" << car_lane << endl;
+        //cout << "\tcar_lane:\t" << car_lane << endl;*/
 
 
         // cout << "check_direction: " << check_direction << endl;
@@ -322,7 +325,7 @@ int change_lanes( int this_lane , double next_car_delta_s, vector<double> car, v
   cout << change_lane_car_back_delta_s << " meters free behind me." << endl;
   if( change_lane_car_fwd_delta_s > next_car_delta_s + 10 && 
       change_lane_car_fwd_delta_s > 50 &&
-      change_lane_car_back_delta_s < 10 ) { //don't cut someone off!
+      change_lane_car_back_delta_s < 15 ) { //don't cut someone off!
     cout << "Yes, change lanes!" << endl;
     return this_lane;
   } else {
@@ -488,49 +491,66 @@ int main() {
             double next_car_s = next_car[3];
             double next_car_vs = next_car[4];
 
-            if( next_car_id > 0) {
+
+            double clear_distance = 60.0;
+            double follow_distance = 40.0;
+
+            if( next_car_id < 0 ) {
+              cout << "lane " << lane << " comletely empty in sensor horizon" << endl;
+              target_velocity = speed_limit-1;
+            } else {
+
+
               cout << "the next vehicle in my lane, car # " << next_car_id;
               cout << " is currently " << next_car_delta_s << " meters away." << endl;
               cout << "I am approaching it at a relative speed of " << next_car_delta_vs << endl;
               double next_car_collide_time = next_car_delta_s / next_car_delta_vs;
               cout << "I will hit it in " << next_car_collide_time << " seconds. " << endl;
 
-              if( next_car_delta_s < 30 ) { //If I am close to a car
-                cout << "CLOSE TO CAR" << endl;
-                if( next_car_delta_vs > -1 ) { //If I am going faster than that car 
-                  cout << "APPROACHING CLOSE CAR" << endl;
-                  //target_velocity-=next_car_delta_vs; //next_car_delta_vs;
-                  target_velocity = next_car_vs-5;//max( next_car_vs - 5, target_velocity );
-                  
-                } //else { // If I am going slower than that car
-              } else if ( next_car_delta_s > 90 ) {
-                cout << "I am greater than 90 meters behind the car " << endl;
+              if( next_car_delta_s > clear_distance ) {
+                cout << "I am greater than " << clear_distance << " meters behind the car " << endl;
                 target_velocity = speed_limit-1;
-              } else  {
-                // maybe change lanes?
-                // check left and right
+              } else { //If I am closish to a car
+                cout << "maybe change lanes?" << endl;
                 int new_lane = change_lanes( lane-1 , next_car_delta_s, car, sensor_fusion ) ;
                 if( new_lane < 0  ) {
                   new_lane = change_lanes( lane+1 , next_car_delta_s, car, sensor_fusion ) ;
                 }
 
-
-                if( new_lane < 0  ) {
-                  //can't change lanes!
-                  /*// follow vehicle at 60 meters back
-                target_velocity+= 0.5;
-                target_velocity = max( next_car_vs - 2, target_velocity );*/
-                } else {
+                if( new_lane >= 0 ) {
                   lane = new_lane;
-                }
-                
+                } else {
+                  //can't change lanes!
+                  //follow at 60 meters back
+                    //target_velocity = next_car_vs
+                  double slope = -1;
+                  if( next_car_delta_s < follow_distance ) {
+                    cout << "Slow down:" << endl;
+                    slope = 10.0 / follow_distance;
+                    target_velocity = next_car_vs - ( follow_distance - next_car_delta_s ) * slope;
+                    /*double breaks_at_collision = 10.0;
+                    double slope = breaks_at_collision / follow_distance;
+                    target_velocity = next_car_vs - slope * ( follow_distance - next_car_delta_s ) ; */ //WRONG
+                  } else { //next_car_delta_s > follow_distance;
+                    cout << "Speed up!" << endl;
+                    slope = ( speed_limit - 1 - next_car_vs ) / (clear_distance-follow_distance);
+                    target_velocity = next_car_vs - slope * ( follow_distance - next_car_delta_s );
+                  }
+                  cout << "\tslope: " << slope << endl;
+                  cout << "\tnext_car_delta_s: " << next_car_delta_s << endl;
+                  cout << "\tnext_car_vs: " << next_car_vs << endl;
+                  cout << "\ttarget_velocity: " << target_velocity << endl;
 
+                    
+
+
+                  // follow vehicle at 60 meters back
+                  //target_velocity+= 0.5;
+                  //target_velocity = max( next_car_vs - 2, target_velocity );
+                }
+                  
                 
-             
-              }
-            } else {
-              cout << "lane comletely empty in sensor horizon" << endl;
-              target_velocity = speed_limit-1;
+              } 
             }
             cout << "target_velocity: " << target_velocity << endl;
 /*
